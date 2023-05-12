@@ -1,0 +1,1 @@
+../../.config/sublime-text/Packages/navi-SublimeText/navi_plugin.py
