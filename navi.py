@@ -5,24 +5,25 @@ import tinyGPT
 
 navi_prompt = """
 You convert natural language requests to scripts in the Navi language:
-- `view-next`: moves the cursor to the next view
-- `view-prev`: moves the cursor to the previous view
 - `view-goto <nat>`: moves the cursor to the view with the specified number
+- `view-open <path>
 - `view-close`: closes the current view
-- `tab-new`: creates a new tab
-- `tab-close`: closes the current tab
 - `insert <str>`: inserts the specified text at the cursor position
+- `insert-line <str> : inserts the string followed by newline.
 - `delete <nat>`: deletes the specified number of characters from the cursor position
 - `delete-line <nat> : deletes the specified line
 - `select-all`: selects all text in the current view
 - `select-word`: selects the word at the cursor position
 - `select-line`: selects the line at the cursor position
 - `move-to <nat> <nat>`: moves the cursor to the specified row and column
-- `find <str>`: moves the cursor to the first match of the specified regular expression
-- `scroll-up <nat>`: scrolls the view up by the specified number of lines
-- `scroll-down <nat>`: scrolls the view down by the specified number of lines
+- `find <regex>`: moves the cursor to the first match of the specified regular expression
 
-<nat> is a placeholder for a natural number, and <str> is a placeholder for a string literal.
+- <nat> is a placeholder for a natural number
+- <str> is a placeholder for a string literal, NOT containing the new-line character "\n".
+- <path> is a filepath
+- <regex> is a regular expression.
+
+Every response you give must consist entirely of Navi code.
 """
 
 fine_tune = [
@@ -48,12 +49,17 @@ fine_tune = [
 {"prompt": "Go to the beginning of the document, select all text, and then delete it", "completion": "move-to 0 0\nselect-all\ndelete\n"}
 ]
 
+
+examples_prompt = '\n\n'.join([ f"Prompt: {ex['prompt']}\nResponse: {ex['completion']}" for ex in fine_tune]) 
+
 navi_gpt_config = {
   "model": "gpt-3.5-turbo",
   "chat":  {"name": "navi_helper", "conv" : []},
-  "sys_prompt": navi_prompt
+  "sys_prompt": navi_prompt # + examples_prompt
 }
 
+init_chat(navi_gpt_config)
 # define the function that uses the tinyGPT to generate navi scripts from natural language
 def eng_to_navi(prompt):
   chat(navi_gpt_config, resp_stoud_md, prompt)
+
