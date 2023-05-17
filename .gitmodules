@@ -1,0 +1,3 @@
+[submodule "navi-SublimeText"]
+	path = navi-SublimeText
+	url = git@github.com:ciaran-matthew-dunne/navi-SublimeText.git
