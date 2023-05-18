@@ -1,4 +1,4 @@
-# Navi Language Specification
+# Navi
 
 Navi is a language for performing actions within code editors. 
 It provides commands for perform common navigation and editing tasks.
@@ -34,3 +34,20 @@ The following commands are available in the Navi language:
 - `move-to <row> <col>`: moves the cursor to the specified row and column
 - `scroll-up <lines>`: scrolls the view up by the specified number of lines
 - `scroll-down <lines>`: scrolls the view down by the specified number of lines
+
+## Helpful notes from GPT
+
+- Please note that as the GPT model isn't trained on the Navi language
+specifically, its performance would depend on how closely the syntax and
+semantics of the Navi language resemble those of the natural languages and
+programming languages in the GPT model's training data. Hence, the model might
+not always provide perfect translations and would benefit from additional
+fine-tuning or example-based learning as implemented in this script.
+
+- It's important to note that `navi-SublimeText` is a SublimeText 4 (ST4) plugin, 
+and ST4 uses Python 3.3 or 3.8 for its plugins. 
+However, the Python version used by the GPT model in `navi.py` is Python 3.10.
+
+This is why the ST4 plugin communicates with the GPT-3 model via a Flask server,
+which is capable of running in Python 3.10, rather than calling the GPT model 
+directly into the plugin.
