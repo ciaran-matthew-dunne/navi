@@ -1,6 +1,4 @@
 ## Converting natural language requests to navi instructions.
-
-
 import os, sys
 from flask import Flask, request
 
