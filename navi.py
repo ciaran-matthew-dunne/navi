@@ -1,13 +1,14 @@
 ## Converting natural language requests to navi instructions.
 import os, sys
-from flask import Flask, request
+from flask import Flask, request, jsonify, Response, stream_with_context
+from collections import deque
 
 sys.path.append('/home/ciaran/prog/tinygpt')
 import tinyGPT 
 
 navi_prompt = """
 Here is a list of commands for Navi, a language for describing scripting macros in text editors.
-Responses must only consist of lines of Navi code. 
+Responses must only consist of lines of Navi code which begin with '```navi\n' and end with '\n```'. 
 
 Navi Language Commands:
 
@@ -153,19 +154,60 @@ navi_gpt_config = {
 app = Flask(__name__)
 
 def init_navi():
-  tinyGPT.init_chat(navi_gpt_config)
-  for ex in navi_examples:
-    tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "user", ex["directive"])
-    tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "assistant", ex["navi_script"])
+  tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "user", navi_prompt)
+  # for ex in navi_examples:
+  #   tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "user", ex["directive"])
+  #   scr = '```navi\n' + ex["navi_script"] + '\n```'
+  #   tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "assistant", scr)
+
+
+def remove_from_buffer(buffer, n):
+    for _ in range(n):
+        buffer.popleft()
+
+def resp_to_sublime_and_stoud(gen):
+  buffer = deque()
+  in_navi_code = False
+
+  for chunk in gen:
+    print(chunk, end='', flush=True)
+    buffer.extend(chunk)
+    while len(buffer) > 7:
+      # print(buffer)
+      if not in_navi_code:
+        if ''.join(list(buffer)) == "```navi\n":
+          in_navi_code = True
+          remove_from_buffer(buffer, 7)
+        else:
+          remove_from_buffer(buffer, 1)
+      else:
+        if ''.join(list(buffer)[:4]) == "\n```":
+          in_navi_code = False
+          remove_from_buffer(buffer, 4)
+        else:
+          if '\n' in buffer:
+            line_end = buffer.index('\n')
+            navi_line = ''.join(list(buffer)[:line_end])
+            remove_from_buffer(buffer, line_end+1)
+            yield navi_line
+          else:
+            break
 
 @app.route('/receive', methods=['POST'])
-def subl_recieve():
+def subl_receive():
   subl_data = request.get_json()
-  print(subl_data.get('subl_state'))
-  tinyGPT.chat_sys(navi_gpt_config, subl_data.get('subl_state'))
-  tinyGPT.chat(navi_gpt_config, tinyGPT.resp_stoud_md, subl_data.get('user_prompt'))
-  print(navi_gpt_config["chat"])
-  return {"status" : "success"}, 200
+  state = subl_data.get('subl_state')
+  msg = subl_data.get('user_prompt')
+  
+  tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "system", state)
+  tinyGPT.add_msg(navi_gpt_config["chat"]["conv"], "user", f'Write a Navi script that achieves the following directive: "{msg}"')
+  print(navi_gpt_config["chat"]["conv"])
+  def gen():
+    navi_stream = resp_to_sublime_and_stoud(tinyGPT.call_gpt(navi_gpt_config))
+    for line in navi_stream:
+      yield line
+
+  return stream_with_context(gen())
 
 if __name__ == "__main__":
   init_navi()
